@@ -1,3 +1,10 @@
 colorama==0.4.6
+ExifRead==3.0.0
+exiv2==0.17.1
+hachoir==3.3.0
+numpy==2.1.2
 pillow==11.0.0
+PyExifTool==0.5.6
+pymediainfo==6.1.0
+rawpy==0.23.1
 tqdm==4.66.5
