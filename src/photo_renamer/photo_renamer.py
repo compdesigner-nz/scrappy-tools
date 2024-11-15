@@ -10,44 +10,56 @@ import exiftool
 from pymediainfo import MediaInfo
 from tqdm import tqdm
 
+
 def get_files_in_director(directory: str) -> List[str]:
-    if(not path.exists(directory)):
+    if (not path.exists(directory)):
         raise FileNotFoundError(f"Directory {directory} not found")
-    return [path.join(directory, file) for file in os.listdir(directory)]
+    files = os.listdir(directory)
+    files = [os.path.join(directory, file) for file in files]
+    files = [file for file in files if path.isfile(file)]
+    print(f"There are {len(files)} files in the directory {directory}")
+    return [path.join(directory, file) for file in files]
+
 
 def generate_unique_name_from_count(custom_prefix: str, current_name: str, current_index: int) -> str:
-    if(current_name.startswith(custom_prefix)):
+    if (current_name.startswith(custom_prefix)):
         return current_name
-    if(custom_prefix == ""):
+    if (custom_prefix == ""):
         raise ValueError("The custom prefix must not be empty")
-    if(current_name == ""):
+    if (current_name == ""):
         raise ValueError("The current name must not be empty")
-    if(current_index < 0):
-        raise ValueError("The current index must be greater than or equal to 0")
+    if (current_index < 0):
+        raise ValueError(
+            "The current index must be greater than or equal to 0")
     extension: str = path.splitext(current_name)[1].strip(".")
-    if(extension == ""):
+    if (extension == ""):
         raise ValueError("The file must have an extension")
     return f"{custom_prefix}_{current_index}.{extension}"
 
+
 def rename_file(index_file, directory, custom_prefix):
     index, file = index_file
-    print(file)
     new_name = generate_unique_name_from_count(custom_prefix, file, index)
     os.rename(file, path.join(directory, new_name))
 
+
 def rename_files_in_directory(directory: str, custom_prefix: str) -> None:
     files = get_files_in_director(directory)
+    print(f"Renaming {len(files)} files in the directory {directory}")
     with ThreadPoolExecutor(max_workers=8) as executor:
-        list(tqdm(executor.map(lambda index_file: rename_file(index_file, directory, custom_prefix), enumerate(files)), total=len(files)))
+        list(tqdm(executor.map(lambda index_file: rename_file(index_file,
+             directory, custom_prefix), enumerate(files)), total=len(files)))
+
 
 def ask_user_for_prefix() -> str:
     prefix: str = ""
     while True:
         prefix = input("Enter a custom prefix: ")
-        if(prefix != ""):
+        if (prefix != ""):
             return prefix
         prefix = None
         print("The prefix must not be empty")
+
 
 def ask_user_for_directory() -> str:
     directory: str = ""
@@ -59,8 +71,9 @@ def ask_user_for_directory() -> str:
             return directory
         print("No directory selected")
 
+
 def get_raw_photo_metadata(file_path: str) -> dict | None:
-    if(not path.exists(file_path)):
+    if (not path.exists(file_path)):
         raise FileNotFoundError(f"File {file_path} not found")
     metadata = {}
     if file_path.lower().endswith('.cr3'):
@@ -72,6 +85,7 @@ def get_raw_photo_metadata(file_path: str) -> dict | None:
             metadata["created_date"] = metadata["QuickTime:CreateDate"]
             return metadata
     return None
+
 
 def get_mp4_metadata(file_path: str) -> dict | None:
     """
@@ -86,7 +100,7 @@ def get_mp4_metadata(file_path: str) -> dict | None:
     Returns:
         dict: a dictionary of metadata
     """
-    if(not path.exists(file_path)):
+    if (not path.exists(file_path)):
         raise FileNotFoundError(f"File {file_path} not found")
     metadata = {}
     media_info = MediaInfo.parse(file_path)
@@ -97,6 +111,7 @@ def get_mp4_metadata(file_path: str) -> dict | None:
                 metadata[key] = value
     metadata["created_date"] = metadata["encoded_date"]
     return metadata
+
 
 def get_image_metadata(file_path: str) -> dict:
     """
@@ -111,7 +126,7 @@ def get_image_metadata(file_path: str) -> dict:
     Returns:
         dict: a dictionary of metadata
     """
-    if(not path.exists(file_path)):
+    if (not path.exists(file_path)):
         raise FileNotFoundError(f"File {file_path} not found")
     metadata = {}
     with Image.open(file_path) as img:
@@ -122,6 +137,7 @@ def get_image_metadata(file_path: str) -> dict:
                 metadata[tag_name] = value
     metadata["created_date"] = metadata["DateTime"]
     return metadata
+
 
 def get_file_metadata(file_path: str) -> dict:
     """
@@ -136,7 +152,7 @@ def get_file_metadata(file_path: str) -> dict:
     Returns:
         dict: The metadata as a dictionary
     """
-    if(not path.exists(file_path)):
+    if (not path.exists(file_path)):
         raise FileNotFoundError(f"File {file_path} not found")
     extension = path.splitext(file_path)[1].lower().strip(".")
     match extension:
@@ -153,8 +169,8 @@ def get_file_metadata(file_path: str) -> dict:
         case _:
             raise ValueError(f"Unsupported file extension {extension}")
 
+
 if __name__ == "__main__":
     directory = ask_user_for_directory()
     custom_prefix = ask_user_for_prefix()
     rename_files_in_directory(directory, custom_prefix)
-
